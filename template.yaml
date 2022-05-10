@@ -49,7 +49,7 @@ Resources:
             Schedule: 'rate(10 minutes)'
             Name: MonitorSchedule
             Description: 'schedule site availability check'
-            Enabled: false
+            Enabled: true
       Policies:
         DynamoDBWritePolicy:
           TableName: !Ref DB
