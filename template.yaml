@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  redcap-monitor
+
+  Sample SAM Template for redcap-monitor
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+
+Resources:
+  DB:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: logs
+      AttributeDefinitions:
+        - AttributeName: Server
+          AttributeType: S
+        - AttributeName: TimeStamp
+          AttributeType: S
+#        - AttributeName: StatusCode
+#          AttributeType: N
+#        - AttributeName: Message
+#          AttributeType: S
+      KeySchema:
+        - AttributeName: Server
+          KeyType: HASH
+        - AttributeName: TimeStamp
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: "1"
+        WriteCapacityUnits: "1"
+
+
+  WriteLogsFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: redcap-monitor/
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      Architectures:
+        - x86_64
+      Events:
+        CWSchedule:
+          Type: Schedule
+          Properties:
+            Schedule: 'rate(10 minutes)'
+            Name: MonitorSchedule
+            Description: 'schedule site availability check'
+            Enabled: false
+      Policies:
+        DynamoDBWritePolicy:
+          TableName: !Ref DB
+
+  GetLogsFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: redcap-logs/
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      Architectures:
+        - x86_64
+      Events:
+        GetLogs:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /logs
+            Method: get
+      Policies:
+        DynamoDBReadPolicy:
+          TableName: !Ref DB
+
+
+
+
